@@ -101,4 +101,45 @@
         }
     }
 </script>
+<script>
+document.querySelector("form").addEventListener("submit", function (e) {
+    const requiredFields = [
+        { id: "requester_name", label: "اسم المبلغ" },
+        { id: "email", label: "البريد الإلكتروني" },
+        { id: "phone_number", label: "رقم التواصل" },
+        { id: "title", label: "عنوان البلاغ" },
+        { id: "description", label: "وصف البلاغ" },
+        { id: "location", label: "الموقع" },
+        { id: "department", label: "القسم" }
+    ];
+
+    let isValid = true;
+
+    // إزالة الرسائل القديمة
+    document.querySelectorAll(".field-error").forEach(el => el.remove());
+
+    requiredFields.forEach(function (fieldInfo) {
+        const field = document.getElementById(fieldInfo.id);
+        const value = field.value.trim();
+
+        if (!value) {
+            field.style.border = "2px solid red";
+            isValid = false;
+
+            const error = document.createElement("div");
+            error.className = "field-error";
+            error.style.color = "red";
+            error.style.marginTop = "5px";
+            error.textContent = `⚠️ يرجى تعبئة ${fieldInfo.label}`;
+            field.parentNode.appendChild(error);
+        } else {
+            field.style.border = "1px solid #ccc";
+        }
+    });
+
+    if (!isValid) {
+        e.preventDefault(); // منع الإرسال
+    }
+});
+</script>
 {% endblock %}
