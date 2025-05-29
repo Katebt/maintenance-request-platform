@@ -5,7 +5,9 @@ from app import schemas, models, crud, utils
 from app.database import SessionLocal
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from app.auth import get_current_user  # يجب أن يكون لديك هذا الديبندنسي
+from app.auth import get_current_user
+import imghdr
+from typing import Optional
 
 router = APIRouter(prefix="/requests", tags=["Requests"])
 templates = Jinja2Templates(directory="templates")
@@ -21,19 +23,13 @@ def get_db():
 def new_request(request: Request):
     return templates.TemplateResponse("create_request.html", {"request": request})
 
-
-#for Maint eng boards
-# app/routers/requests.py
-
 @router.get("/my_requests", response_class=HTMLResponse)
 def my_requests(request: Request, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
-    # اجلب الطلبات الخاصة بالمستخدم أو المهندس
     if user.role == "engineer":
         requests_q = db.query(models.Request).filter(models.Request.assigned_engineer_id == user.id)
     else:
         requests_q = db.query(models.Request).filter(models.Request.email == user.email)
 
-    # احصائيات الطلبات حسب الحالة
     pending_count = requests_q.filter(models.Request.status == "Pending").count()
     inprogress_count = requests_q.filter(models.Request.status == "In Progress").count()
     completed_count = requests_q.filter(models.Request.status == "Completed").count()
@@ -56,7 +52,6 @@ def my_requests(request: Request, db: Session = Depends(get_db), user: models.Us
 @router.get("/list", response_class=HTMLResponse)
 def list_requests(request: Request, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     all_requests = db.query(models.Request).all()
-    # احصائيات
     pending_count = db.query(models.Request).filter(models.Request.status == "Pending").count()
     inprogress_count = db.query(models.Request).filter(models.Request.status == "In Progress").count()
     completed_count = db.query(models.Request).filter(models.Request.status == "Completed").count()
@@ -76,6 +71,7 @@ def list_requests(request: Request, db: Session = Depends(get_db), user: models.
             "closed_count": closed_count,
         }
     )
+
 @router.post("/", response_class=HTMLResponse)
 async def create_request(
         request: Request,
@@ -89,8 +85,28 @@ async def create_request(
         image: UploadFile = File(None),
         db: Session = Depends(get_db)
 ):
+    if not all([
+        requester_name.strip(),
+        email.strip(),
+        phone_number.strip(),
+        title.strip(),
+        description.strip(),
+        location.strip(),
+        department.strip()
+    ]):
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "error": "جميع الحقول مطلوبة ما عدا الصورة",
+        })
+
     file_path = None
-    if image:
+    if image and image.filename:
+        # ✅ تحقق من نوع الملف
+        if not image.content_type.startswith("image/"):
+            return templates.TemplateResponse("index.html", {
+                "request": request,
+                "error": "الملف المرفق يجب أن يكون صورة."
+            })
         file_path = utils.save_file(image)
 
     db_request = models.Request(
@@ -111,19 +127,12 @@ async def create_request(
             request_id=db_request.id,
             file_name=image.filename,
             file_path=file_path,
-            file_type="completion_proof"  # استخدم file_type للتمييز
-
+            file_type="completion_proof"
         )
-
         db.add(db_attachment)
         db.commit()
-        return RedirectResponse(
-            url="/?success=1",
-            status_code=302
-        )
 
-
-    return templates.TemplateResponse("index.html", {"request": request, "message": "تم إرسال الطلب بنجاح!"})
+    return RedirectResponse(url="/?success=1", status_code=302)
 
 @router.get("/{request_id}", response_class=HTMLResponse)
 def get_request_details(
@@ -137,7 +146,6 @@ def get_request_details(
         raise HTTPException(status_code=404, detail="Request not found")
 
     comments = crud.get_comments_by_request(db, request_id)
-    # جلب المرفقات الخاصة بالطلب
     attachments = db.query(models.Attachment).filter(models.Attachment.request_id == request_id).all()
 
     return templates.TemplateResponse(
@@ -147,7 +155,7 @@ def get_request_details(
             "req": req,
             "comments": comments,
             "user": user,
-            "attachments": attachments,  # أضف المرفقات هنا
+            "attachments": attachments,
         }
     )
 
@@ -166,18 +174,14 @@ def add_comment(
     db.add(db_comment)
     db.commit()
     db.refresh(db_comment)
-    # إعادة التوجيه إلى صفحة تفاصيل البلاغ بعد الإضافة
-    return RedirectResponse(
-        url=f"/requests/{request_id}",
-        status_code=302
-    )
+    return RedirectResponse(url=f"/requests/{request_id}", status_code=302)
 
 @router.get("/{request_id}/edit", response_class=HTMLResponse)
 def edit_request(
     request_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),  # هنا!
+    user: models.User = Depends(get_current_user),
 ):
     req = crud.get_request(db, request_id)
     if not req:
@@ -194,7 +198,6 @@ def edit_request(
         }
     )
 
-
 @router.post("/{request_id}/update")
 async def update_request(
     request_id: int,
@@ -203,7 +206,7 @@ async def update_request(
     category: str = Form(...),
     sub_category: str = Form(...),
     status: str = Form(...),
-    assigned_engineer_id: str = Form(None),    # استقبال كـ str هنا!
+    assigned_engineer_id: Optional[int] = Form(None),
     completion_proof: UploadFile = File(None),
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user)
@@ -216,20 +219,17 @@ async def update_request(
     req.description = description
     req.category = category
     req.sub_category = sub_category
-#    req.status = status
-    # بدل: req.status = status
+
     if user.role == "engineer" and status == "Completed":
         req.status = "Pending Approval"
     else:
         req.status = status
 
-    # تعيين مهندس الصيانة بشكل آمن
     if assigned_engineer_id:
-        req.assigned_engineer_id = int(assigned_engineer_id)
+        req.assigned_engineer_id = assigned_engineer_id
     else:
         req.assigned_engineer_id = None
 
-    # إذا تم رفع إثبات إتمام، احفظه في المرفقات مع file_type
     if completion_proof:
         file_path = utils.save_file(completion_proof)
         db_attachment = models.Attachment(
@@ -244,7 +244,6 @@ async def update_request(
     db.refresh(req)
     return RedirectResponse(url=f"/requests/{request_id}", status_code=302)
 
-#final Approve by Manager
 @router.post("/{request_id}/approve")
 def approve_request(
     request_id: int,
