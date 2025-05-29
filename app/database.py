@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 #inrender
 DATABASE_URL = "postgresql://maintenance_db_f0k5_user:PkOy1CqZlB9uKpFQigKVhIv04uzOcozr@dpg-d0s12eh5pdvs7393ervg-a/maintenance_db_f0k5"
-DB_PATH = os.path.abspath("./data/test.db")
+#DB_PATH = os.path.abspath("./data/test.db")
 #DATABASE_URL = "postgresql://postgres:Post123@localhost:5431/katebalbalawi"
 
 # إذا أردت جعل الاتصال ديناميكي (من env):
