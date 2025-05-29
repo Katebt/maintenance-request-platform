@@ -1,0 +1,67 @@
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم{% endblock %}
+
+{% block content %}
+
+<div class="dashboard" style="max-width:700px; margin:auto; background:#fff; border-radius:14px; box-shadow:0 2px 10px #0001; padding:24px; margin-top:24px;">
+    <div style="display:flex; gap:24px; align-items:center; border-bottom:1px solid #f0f0f0; margin-bottom:24px; padding-bottom:16px;">
+        <div style="flex:1;">
+            <h2 style="margin:0 0 8px 0; color:#19647e;">مرحبًا، {{ user.name }}</h2>
+            <div style="color:#666; font-size:1em;">
+                <span style="margin-left:12px;">📧 {{ user.email }}</span>
+                <span style="margin-left:12px;">👤
+                    {% if user.role == "manager" %}مدير
+                    {% elif user.role == "engineer" %}مهندس
+                    {% elif user.role == "admin" or user.role == "superuser" %}مدير النظام
+                    {% else %}مستخدم
+                    {% endif %}
+                </span>
+                <span>🏢 {{ user.department }}</span>
+            </div>
+        </div>
+        <!-- يمكنك إضافة صورة رمزية أو شعار هنا إن أردت -->
+    </div>
+
+    <h3 style="margin-bottom:14px;">الطلبات الخاصة بك</h3>
+    {% if requests %}
+    <table style="width:100%; border-collapse:collapse; background:#f9f9f9; border-radius:8px; overflow:hidden;">
+        <thead>
+            <tr style="background:#eceff1; color:#19647e;">
+                <th style="padding:10px;">#</th>
+                <th style="padding:10px;">العنوان</th>
+                <th style="padding:10px;">الحالة</th>
+                <th style="padding:10px;">عرض التفاصيل</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in requests %}
+            <tr style="border-bottom:1px solid #f1f1f1;">
+                <td style="text-align:center;">{{ loop.index }}</td>
+                <td>{{ req.title }}</td>
+                <td>
+                    {% if req.status == 'Pending' %}
+                        <span style="color:#e6a700;">قيد الانتظار</span>
+                    {% elif req.status == 'In Progress' %}
+                        <span style="color:#2196f3;">قيد التنفيذ</span>
+                    {% elif req.status == 'Completed' %}
+                        <span style="color:#28a745;">مكتمل</span>
+                    {% elif req.status == 'Closed' %}
+                        <span style="color:#dc3545;">مغلق</span>
+                    {% else %}
+                        <span style="color:#888;">غير محدد</span>
+                    {% endif %}
+                </td>
+                <td><a href="/requests/{{ req.id }}" style="color:#19647e;">عرض التفاصيل</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div style="padding:16px 0; text-align:center; color:#666;">لا يوجد طلبات حاليًا.</div>
+    {% endif %}
+</div>
+    <a href="/auth/logout" class="btn">تسجيل خروج</a>
+</div>
+{% endblock %}

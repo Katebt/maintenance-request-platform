@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}طلباتي كمهندس{% endblock %}
+{% block content %}
+
+<h2>بلاغات الصيانة المسندة إليك</h2>
+<div class="status-cards" style="display:flex; gap:16px; margin-bottom:32px; justify-content: center;">
+    <div class="card" style="background:#ffc1071a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#dc9a00; margin:0;">قيد الانتظار</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ pending_count }}</div>
+    </div>
+    <div class="card" style="background:#0d6efd1a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#0d6efd; margin:0;">قيد التنفيذ</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ inprogress_count }}</div>
+    </div>
+    <div class="card" style="background:#1987541a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#198754; margin:0;">مكتمل</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ completed_count }}</div>
+    </div>
+    <div class="card" style="background:#dc35451a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#dc3545; margin:0;">مغلق</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ closed_count }}</div>
+    </div>
+</div>
+<table>
+  <tr>
+    <th>رقم البلاغ</th>
+      <th>تاريخ الإنشاء</th>
+    <th>العنوان</th>
+    <th>الحالة</th>
+    <th>القسم</th>
+    <th>الإجراءات</th>
+      <th>تاريخ الإكمال</th>
+  </tr>
+  {% for req in requests %}
+  <tr>
+    <td>{{ req.id }}</td>
+    <td>
+     {{ req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else "-" }}
+    </td>
+    <td>{{ req.title }}</td>
+    <td>{{ req.status }}</td>
+    <td>{{ req.department }}</td>
+    <td>
+      <a href="/requests/{{ req.id }}">عرض</a>
+      {% if req.status != "Completed" %}
+      | <a href="/requests/{{ req.id }}/edit">تحديث الحالة</a>
+      {% endif %}
+    </td>
+              <td>
+{% if req.status in ["Completed", "Closed"] and req.updated_at %}
+    {{ req.updated_at.strftime('%Y-%m-%d %H:%M') }}
+{% else %}
+    -
+{% endif %}
+        </td>
+  </tr>
+  {% endfor %}
+
+</table>
+{% if not requests %}
+  <div class="alert">لا يوجد طلبات صيانة مسندة لك حاليا.</div>
+{% endif %}
+{% endblock %}

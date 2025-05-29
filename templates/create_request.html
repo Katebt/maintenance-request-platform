@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}نموذج بلاغ جديد{% endblock %}
+
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center" style="min-height:80vh;">
+    <div class="col-12 col-md-8 col-lg-6 col-xl-5 bg-white p-4 rounded shadow">
+        <h2 class="text-center mb-4" style="font-weight:bold;">نموذج بلاغ جديد</h2>
+
+        <form action="/requests" method="post" enctype="multipart/form-data" novalidate>
+            <div class="mb-3">
+                <label for="requester_name" class="form-label">اسم المبلغ</label>
+                <input type="text" name="requester_name" id="requester_name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">البريد الإلكتروني</label>
+                <input type="email" name="email" id="email" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="phone_number" class="form-label">رقم التواصل</label>
+                <input type="text" name="phone_number" id="phone_number" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="title" class="form-label">عنوان البلاغ</label>
+                <input type="text" name="title" id="title" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">وصف البلاغ</label>
+                <textarea name="description" id="description" class="form-control" rows="4" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="location" class="form-label">الموقع</label>
+                <select name="location" id="location" class="form-select" required>
+                    <option value="" selected disabled>اختر الموقع...</option>
+                    <option value="Main Building - Basement">Main Building - Basement</option>
+                    <option value="Main Building - Ground floor">Main Building - Ground floor</option>
+                    <option value="Main Building - First floor">Main Building - First floor</option>
+                    <option value="Main Building - Second Floor">Main Building - Second Floor</option>
+                    <option value="Main Building - Third floor">Main Building - Third floor</option>
+                    <option value="Main Building - Fourth floor">Main Building - Fourth floor</option>
+                    <option value="Other">Other (specify)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="department" class="form-label">القسم</label>
+                <select name="department" id="department" class="form-select" required>
+                    <option value="" selected disabled>اختر القسم...</option>
+                    <option value="CCSD">CCSD / التعقيم</option>
+                    <option value="Medical Record">Medical Record / السجلات الطبية</option>
+                    <option value="Central">Central / السنترال</option>
+                    <option value="Internal Pharmacy">Internal Pharmacy / الصيدلية الداخلية</option>
+                    <option value="Mortary">Mortary / الوفيات</option>
+                    <option value="IT">IT / الصحة الالكترونية</option>
+                    <option value="Health Security">Health Security / الامن الصحي</option>
+                    <option value="Pedia ER">Pedia ER / طوارئ الأطفال</option>
+                    <option value="OBER">OBER / طوارئ النساء</option>
+                    <option value="Outpatient Pharmacy">Outpatient Pharmacy / الصيدلية الخارجية</option>
+                    <option value="X-ray">X-ray / الاشعة</option>
+                    <option value="Home Care">Home Care / الطب المنزلي</option>
+                    <option value="physiotherapy">physiotherapy / العلاج الطبيعي</option>
+                    <option value="Patient Experience">Patient Experience / تجربة المريض</option>
+                    <option value="Patient Affairs">Patient Affairs / شؤون المرضى</option>
+                    <option value="Admission Office">Admission Office / مكتب الدخول</option>
+                    <option value="Reports Office">Reports Office / مكتب البلاغات</option>
+                    <option value="Other">Other (specify)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="image" class="form-label">صورة توضيحية (اختياري)</label>
+                <input type="file" name="image" id="image" class="form-control" accept="image/*" capture="environment">
+                <small class="form-text text-muted">يمكنك التقاط صورة مباشرة أو اختيار صورة من الاستوديو.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mt-3">إرسال البلاغ</button>
+
+        </form>
+    </div>
+</div>
+{% endblock %}

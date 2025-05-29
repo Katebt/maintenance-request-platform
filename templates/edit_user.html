@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}تعديل مستخدم{% endblock %}
+{% block content %}
+<h2>تعديل بيانات المستخدم</h2>
+<form action="/users/{{ edit_user.id }}/update" method="post" style="max-width:400px; margin:auto;">
+    <label for="name">الاسم:</label>
+    <input type="text" name="name" id="name" value="{{ edit_user.name }}" readonly>
+
+    <label for="email">البريد الإلكتروني:</label>
+    <input type="email" name="email" id="email" value="{{ edit_user.email }}" readonly>
+
+    <label for="role">الدور:</label>
+    <select name="role" id="role" required onchange="toggleDept()">
+        <option value="user" {% if edit_user.role == "user" %}selected{% endif %}>مستخدم عادي</option>
+        <option value="engineer" {% if edit_user.role == "engineer" %}selected{% endif %}>مهندس صيانة</option>
+        <option value="manager" {% if edit_user.role == "manager" %}selected{% endif %}>مدير</option>
+        {% if user.role == "superuser" %}
+        <option value="admin" {% if edit_user.role == "admin" %}selected{% endif %}>مدير النظام</option>
+         {% endif %}
+    </select>
+
+    <div id="dept-div" style="margin-top:12px; display:none;">
+        <label for="department">القسم:</label>
+        <select name="department" id="department">
+            <option value="Electrical" {% if edit_user.department == "Electrical" %}selected{% endif %}>كهرباء</option>
+            <option value="Mechanical" {% if edit_user.department == "Mechanical" %}selected{% endif %}>ميكانيكا</option>
+            <option value="Civil" {% if edit_user.department == "Civil" %}selected{% endif %}>مدني</option>
+            <option value="HVAC" {% if edit_user.department == "HVAC" %}selected{% endif %}>تكييف</option>
+            <option value="Electronic" {% if edit_user.department == "Electronic" %}selected{% endif %}>إلكترونيات</option>
+        </select>
+    </div>
+
+    <button type="submit" style="margin-top:16px;">تحديث المستخدم</button>
+</form>
+<script>
+function toggleDept() {
+    var role = document.getElementById("role").value;
+    document.getElementById("dept-div").style.display = (role === "engineer" || role === "manager") ? "block" : "none";
+}
+toggleDept();
+document.getElementById("role").addEventListener("change", toggleDept);
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}الإشعارات{% endblock %}
+{% block content %}
+<h2>الإشعارات</h2>
+<ul>
+    {% for notif in notifications %}
+    <li style="margin-bottom:8px;{% if not notif.is_read %} font-weight:bold; {% endif %}">
+        {{ notif.content }}<br>
+        <small>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+        {% if not notif.is_read %}
+            <form action="/notifications/{{ notif.id }}/read" method="post" style="display:inline;">
+                <button type="submit" style="font-size:0.8em;">تمت القراءة</button>
+            </form>
+        {% endif %}
+    </li>
+    {% else %}
+    <li>لا توجد إشعارات حالياً.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,27 @@
+<!-- templates/login.html -->
+{% extends "base.html" %}
+
+{% block title %}تسجيل الدخول{% endblock %}
+
+{% block content %}
+<h2>تسجيل الدخول</h2>
+{% if error %}
+    <div class="alert alert-danger" style="color:red;">{{ error }}</div>
+{% endif %}
+<form action="/auth/login" method="post" enctype="application/x-www-form-urlencoded">
+    <label for="email">البريد الإلكتروني:</label>
+    <input type="text" id="email" name="email" required>
+
+    <label for="password">كلمة المرور:</label>
+    <input type="password" id="password" name="password" required>
+
+    <button type="submit">تسجيل الدخول</button>
+</form>
+{% if request.query_params.get('success') %}
+    <div class="alert" style="background:#dbf8cb; color:#165a0d; padding:12px; border-radius:6px; margin:20px 0; text-align:center;">
+        ✅ تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول.
+    </div>
+{% endif %}
+
+<p>ليس لديك حساب؟ <a href="/users/register">تسجيل حساب جديد</a></p>
+{% endblock %}

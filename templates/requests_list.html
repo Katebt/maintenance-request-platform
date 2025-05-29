@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}قائمة طلبات الصيانة{% endblock %}
+
+{% block content %}
+<h2>قائمة طلبات الصيانة</h2>
+<div class="status-cards" style="display:flex; gap:16px; margin-bottom:32px; justify-content: center;">
+    <div class="card" style="background:#ffc1071a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#dc9a00; margin:0;">قيد الانتظار</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ pending_count }}</div>
+    </div>
+
+    <div class="card" style="background:#0d6efd1a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#0d6efd; margin:0;">قيد التنفيذ</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ inprogress_count }}</div>
+    </div>
+        <div class="card" style="background:#8d5f001a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#b08906; margin:0;">بانتظار الموافقة</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ pending_approval_count }}</div>
+    </div>
+
+
+    <div class="card" style="background:#1987541a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#198754; margin:0;">مكتمل</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ completed_count }}</div>
+    </div>
+    <div class="card" style="background:#dc35451a; padding:22px 36px; border-radius:15px; box-shadow:0 2px 6px #0001;">
+        <h3 style="color:#dc3545; margin:0;">مغلق</h3>
+        <div style="font-size:2em; font-weight:bold;">{{ closed_count }}</div>
+    </div>
+</div>
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%; text-align:center;">
+    <thead>
+        <tr>
+            <th>رقم البلاغ</th>
+             <th>تاريخ الإنشاء</th>
+            <th>العنوان</th>
+            <th>الحالة</th>
+            <th>القسم</th>
+            <th>التصنيف</th>
+            <th>التصنيف الفرعي</th>
+            <th>المهندس المعيّن</th>
+            <th>الإجراءات</th>
+             <th>تاريخ الإكمال</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for req in requests %}
+        <tr>
+            <td>{{ req.id }}</td>
+                <td>
+            {{ req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else "-" }}
+        </td>
+
+            <td>{{ req.title }}</td>
+            <td>
+                {% if req.status == 'Pending Approval' %}
+                    <div style="display:flex; align-items:center; justify-content:center; gap:10px; background:#fffbea; border-radius:8px; padding:6px 3px;">
+                        <span style="color:#a87400; font-weight:bold; font-size:0.93em;">بانتظار الموافقة </span>
+                        <!-- زر اعتماد الطلب كـ مكتمل (فقط إذا المدير ويرى الطلب بانتظار الموافقة) -->
+                        {% if user and user.role == "manager" and req.status == "Pending Approval" %}
+                            <div style="margin-top:18px;">
+                                <button class="btn btn-success" onclick="approveAsCompleted({{ req.id }}, this)" type="button">
+                                    اعتماد ✅
+                                </button>
+                                <span id="msg-{{ req.id }}" style="color:green; font-weight:bold; margin-right:10px;"></span>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <span style="font-size:0.96em;">{{ req.status }}</span>
+                {% endif %}
+            </td>
+                        <td>{{ req.department }}</td>
+            <td>{{ req.category if req.category else "غير محدد" }}</td>
+            <td>{{ req.sub_category if req.sub_category else "غير محدد" }}</td>
+            <td>
+                {% if req.assigned_engineer %}
+                    {{ req.assigned_engineer.name }}
+                {% elif req.assigned_engineer_id %}
+                    {{ req.assigned_engineer_id }}
+                {% else %}
+                    غير معين
+                {% endif %}
+            </td>
+            <td>
+                <a href="/requests/{{ req.id }}">عرض التفاصيل</a>
+                {% if user and user.role == "manager" %}
+                    | <a href="/requests/{{ req.id }}/edit">تعديل/تعيين</a>
+                {% endif %}
+            </td>
+                  <td>
+            {% if req.status == "Completed" and req.updated_at %}
+                {{ req.updated_at.strftime('%Y-%m-%d %H:%M') }}
+            {% else %}
+                -
+            {% endif %}
+        </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% block scripts %}
+<script>
+function approveAsCompleted(requestId, btn) {
+    // لا ترسل النموذج إطلاقاً هنا!
+    fetch(`/requests/${requestId}/approve`, {method: 'POST'})
+        .then(resp => {
+            if (!resp.ok) {
+                return resp.json().then(err => { throw err; });
+            }
+            return resp.json();
+        })
+        .then(data => {
+            document.getElementById(`msg-${requestId}`).innerText = "✅ تم الاعتماد كمكتمل!";
+            btn.disabled = true;
+        })
+        .catch(err => {
+            alert("حدث خطأ: " + (err.detail || "تعذر تنفيذ العملية"));
+        });
+}
+</script>
+{% endblock %}
+{% endblock %}

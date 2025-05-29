@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}تسجيل مستخدم جديد{% endblock %}
+
+{% block content %}
+<div class="register-form" style="max-width:400px; margin:auto;">
+    <h2 style="text-align:center;">تسجيل مستخدم جديد</h2>
+    {% if error %}
+    <div id="error-msg" style="background:#ffdede; color:#b71c1c; padding:12px; border-radius:7px; text-align:center; margin-bottom:20px;">
+        {{ error }}
+    </div>
+    <script>
+        // تحريك الحقل إذا كان هناك خطأ
+        document.getElementById('email').focus();
+        document.getElementById('email').style.border = "2px solid #d22";
+    </script>
+    {% endif %}
+    <form action="/users/register" method="post">
+        <label for="name">الاسم الكامل:</label>
+        <input type="text" name="name" id="name" value="{{ name or '' }}" required>
+
+        <label for="email">البريد الإلكتروني:</label>
+        <input type="email" name="email" id="email" value="{{ email or '' }}" required>
+        <div class="mb-3">
+    <label for="phone_number" class="form-label">رقم الجوال</label>
+    <input type="text" name="phone_number" id="phone_number" class="form-control" required maxlength="15" pattern="^[0-9+]+$">
+</div>
+
+        <label for="password">كلمة المرور:</label>
+        <input type="password" name="password" id="password" required>
+
+        <label for="confirm_password">تأكيد كلمة المرور:</label>
+        <input type="password" name="confirm_password" id="confirm_password" required>
+
+        <button type="submit" style="margin-top:16px;">تسجيل</button>
+    </form>
+</div>
+{% endblock %}

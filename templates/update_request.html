@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}تحديث تفاصيل الطلب{% endblock %}
+
+{% block content %}
+<h2>تحديث تفاصيل الطلب</h2>
+<form action="/requests/{{ req.id }}/update" method="post" enctype="multipart/form-data">
+    <label for="requester_name">اسم المبلغ:</label>
+    <input type="text" id="requester_name" name="requester_name" value="{{ req.requester_name }}" readonly>
+
+    <label for="email">البريد الإلكتروني:</label>
+    <input type="email" id="email" name="email" value="{{ req.email }}" readonly>
+
+    <label for="phone_number">رقم التواصل:</label>
+    <input type="text" id="phone_number" name="phone_number" value="{{ req.phone_number }}" readonly>
+
+    <label for="title">عنوان البلاغ:</label>
+    <input type="text" id="title" name="title" value="{{ req.title }}" required>
+
+    <label for="description">وصف البلاغ:</label>
+    <textarea id="description" name="description" required>{{ req.description }}</textarea>
+
+    <label for="location">الموقع:</label>
+    <input type="text" id="location" name="location" value="{{ req.location }}" readonly>
+
+    <label for="department">القسم:</label>
+    <input type="text" id="department" name="department" value="{{ req.department }}" readonly>
+
+    <label for="category">التصنيف:</label>
+    <select id="category" name="category" required>
+        <option value="Electrical" {% if req.category == 'Electrical' %}selected{% endif %}>كهرباء</option>
+        <option value="Mechanical" {% if req.category == 'Mechanical' %}selected{% endif %}>ميكانيكا</option>
+        <option value="Civil" {% if req.category == 'Civil' %}selected{% endif %}>مدني</option>
+        <option value="HVAC" {% if req.category == 'HVAC' %}selected{% endif %}>تكييف</option>
+        <option value="Electronic" {% if req.category == 'Electronic' %}selected{% endif %}>الكترونيات</option>
+    </select>
+
+    <label for="sub_category">التصنيف الفرعي:</label>
+    <select id="sub_category" name="sub_category" required>
+        <option value="Plumbing" {% if req.sub_category == 'Plumbing' %}selected{% endif %}>سباكة</option>
+        <option value="Carpentry" {% if req.sub_category == 'Carpentry' %}selected{% endif %}>نجارة</option>
+        <option value="Painting" {% if req.sub_category == 'Painting' %}selected{% endif %}>دهان</option>
+        <option value="Printer" {% if req.sub_category == 'Printer' %}selected{% endif %}>طابعة</option>
+        <option value="HVAC" {% if req.sub_category == 'HVAC' %}selected{% endif %}>تكييف</option>
+        <option value="Elevators" {% if req.sub_category == 'Elevators' %}selected{% endif %}>مصاعد</option>
+    </select>
+
+    <!-- اختيار مهندس الصيانة: يظهر فقط للمدير، والبقية يشاهدون الاسم فقط -->
+    {% if user and user.role == "manager" %}
+        <label for="assigned_engineer">اختيار مهندس الصيانة:</label>
+        <select id="assigned_engineer" name="assigned_engineer_id">
+            <option value="">اختر مهندسًا</option>
+            {% for engineer in engineers %}
+                <option value="{{ engineer.id }}" {% if req.assigned_engineer_id == engineer.id %}selected{% endif %}>{{ engineer.name }}</option>
+            {% endfor %}
+        </select>
+    {% else %}
+        {% if req.assigned_engineer_id %}
+            <input type="hidden" name="assigned_engineer_id" value="{{ req.assigned_engineer_id }}">
+            <p><strong>مهندس الصيانة:</strong>
+                {{ engineers | selectattr("id", "equalto", req.assigned_engineer_id) | first | attr("name") }}
+            </p>
+        {% else %}
+            <p><strong>مهندس الصيانة:</strong> لم يتم التعيين بعد.</p>
+        {% endif %}
+    {% endif %}
+
+    <label for="status">الحالة:</label>
+    <select id="status" name="status" required>
+        <option value="Pending" {% if req.status == 'Pending' %}selected{% endif %}>قيد الانتظار</option>
+        <option value="In Progress" {% if req.status == 'In Progress' %}selected{% endif %}>قيد التنفيذ</option>
+        <option value="Completed" {% if req.status == 'Completed' %}selected{% endif %}>مكتمل</option>
+        <option value="Closed" {% if req.status == 'Closed' %}selected{% endif %}>مغلق</option>
+    </select>
+
+    <!-- رفع إثبات إتمام البلاغ: يظهر للمهندس فقط -->
+    {% if user and user.role == "engineer" %}
+    <div class="mb-3">
+        <label for="completion_proof" class="form-label">إثبات إتمام البلاغ (صورة أو ملف)</label>
+        <input type="file" name="completion_proof" id="completion_proof" class="form-control" accept="image/*,application/pdf">
+        <small class="form-text text-muted">ارفع صورة أو ملف يوضح إتمام العمل (اختياري للحالات غير مكتمل).</small>
+    </div>
+    {% endif %}
+
+    <button type="submit">تحديث الطلب</button>
+</form>
+<script>
+function approveAsCompleted(requestId, btn) {
+    fetch(`/requests/${requestId}/approve`, {method: 'POST'})
+        .then(resp => resp.json())
+        .then(data => {
+            document.getElementById(`msg-${requestId}`).innerText = "✅ تم الاعتماد كمكتمل!";
+            btn.disabled = true;
+            // يمكن تحديث حالة الطلب في الجدول أيضًا هنا مباشرة
+        });
+}
+</script>
+{% endblock %}

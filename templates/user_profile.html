@@ -1,0 +1,31 @@
+<!-- templates/user_profile.html -->
+{% extends "base.html" %}
+
+{% block title %}تفاصيل المستخدم{% endblock %}
+
+{% block content %}
+<h2>تفاصيل المستخدم</h2>
+
+<form action="/users/{{ user.id }}/update" method="post">
+    <label for="name">الاسم:</label>
+    <input type="text" id="name" name="name" value="{{ user.name }}" required>
+
+    <label for="email">البريد الإلكتروني:</label>
+    <input type="email" id="email" name="email" value="{{ user.email }}" required>
+
+    <label for="department">القسم:</label>
+    <input type="text" id="department" name="department" value="{{ user.department }}">
+
+    <label for="password">كلمة المرور (اتركه فارغًا إذا لا تريد تغييره):</label>
+    <input type="password" id="password" name="password">
+
+    <button type="submit">تحديث</button>
+</form>
+
+<hr>
+
+<form action="/users/{{ user.id }}/delete" method="post" onsubmit="return confirm('هل أنت متأكد من حذف حسابك؟');">
+    <button type="submit" style="background-color: red; color: white;">حذف الحساب</button>
+</form>
+
+{% endblock %}

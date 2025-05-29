@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}تفاصيل الطلب{% endblock %}
+{% block content %}
+
+<h2 class="text-center mb-4" style="font-weight:bold; color:#1976d2;">تفاصيل الطلب رقم {{ req.id }}</h2>
+
+<!-- بيانات مقدم الطلب -->
+<div class="card" style="max-width:540px; margin:auto; margin-bottom:22px; padding:22px 28px; background:#f7fafd; border-radius:12px; box-shadow:0 2px 8px #0001;">
+    <h4 style="margin-bottom:14px; color:#1565c0;">بيانات مقدم الطلب</h4>
+    <table style="width:100%; font-size:1.07em;">
+        <tr>
+            <td style="padding:4px 0;"><b>الاسم:</b></td>
+            <td>{{ req.requester_name }}</td>
+        </tr>
+        <tr>
+            <td style="padding:4px 0;"><b>رقم الجوال:</b></td>
+            <td>{{ req.phone_number }}</td>
+        </tr>
+        <tr>
+            <td style="padding:4px 0;"><b>البريد الإلكتروني:</b></td>
+            <td>{{ req.email }}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- تفاصيل الطلب -->
+<div class="card" style="max-width:540px; margin:auto; margin-bottom:22px; padding:22px 28px; background:#fdf7f9; border-radius:12px; box-shadow:0 2px 8px #0001;">
+    <h4 style="margin-bottom:14px; color:#c2185b;">تفاصيل الطلب</h4>
+    <table style="width:100%; font-size:1.07em;">
+        <tr>
+            <td style="padding:4px 0;"><b>العنوان:</b></td>
+            <td>{{ req.title }}</td>
+        </tr>
+        <tr>
+            <td style="padding:4px 0;"><b>الوصف:</b></td>
+            <td>{{ req.description }}</td>
+        </tr>
+        <tr>
+            <td style="padding:4px 0;"><b>الحالة:</b></td>
+            <td>{{ req.status }}</td>
+        </tr>
+        <tr>
+            <td style="padding:4px 0;"><b>المهندس المعيّن:</b></td>
+            <td>
+                {% if req.assigned_engineer %}
+                    {{ req.assigned_engineer.name }}
+                {% elif req.assigned_engineer_id %}
+                    {{ req.assigned_engineer_id }}
+                {% else %}
+                    غير معين
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+
+<!-- عرض المرفقات -->
+<div class="card" style="max-width:540px; margin:auto; margin-bottom:22px; padding:22px 28px; background:#f8f9fa; border-radius:12px; box-shadow:0 2px 8px #0001;">
+    <h4 style="margin-bottom:10px; color:#5d4037;">المرفقات</h4>
+    {% if attachments and attachments|length > 0 %}
+        <ul style="padding:0; list-style:none;">
+            {% for file in attachments %}
+            <li style="margin-bottom: 12px;">
+                {% if file.file_name.endswith('.jpg') or file.file_name.endswith('.png') or file.file_name.endswith('.jpeg') %}
+                    <img src="{{ file.file_path }}" alt="{{ file.file_name }}" style="max-width:220px;max-height:160px; border-radius:6px; display:block; margin-bottom:3px;">
+                {% endif %}
+                <a href="{{ file.file_path }}" target="_blank" download>{{ file.file_name }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p style="color:#888;">لا يوجد مرفقات.</p>
+    {% endif %}
+</div>
+
+<!-- مرفقات إثبات إتمام البلاغ (إن وجدت) -->
+{% if req.attachments %}
+<div class="card" style="max-width:540px; margin:auto; margin-bottom:22px; padding:18px 26px; background:#eef9f3; border-radius:12px; box-shadow:0 2px 8px #0001;">
+    <h4 style="margin-bottom:10px; color:#388e3c;">إثباتات إتمام البلاغ</h4>
+    <ul style="padding:0; list-style:none;">
+    {% for file in req.attachments %}
+        <li style="margin-bottom:10px;">
+            {% if file.description == "إثبات إتمام البلاغ" %}
+                <b>إثبات إتمام البلاغ:</b>
+            {% endif %}
+            {% if file.file_path.endswith('.jpg') or file.file_path.endswith('.png') %}
+                <img src="{{ file.file_path }}" alt="إثبات إتمام البلاغ" style="max-width:160px; display:block;">
+            {% else %}
+                <a href="{{ file.file_path }}" target="_blank">{{ file.file_name }}</a>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- التعليقات -->
+<div class="card" style="max-width:540px; margin:auto; margin-bottom:22px; padding:20px 26px; background:#f6f8fe; border-radius:12px; box-shadow:0 2px 8px #0001;">
+    <h4 style="margin-bottom:10px; color:#1976d2;">التعليقات</h4>
+    <ul style="padding:0; list-style:none;">
+        {% for comment in comments %}
+        <li style="margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:7px;">
+            <b>{{ comment.user.name }}</b>: {{ comment.content }}
+            <br>
+            <small style="color:#666;">
+                <i>{{ comment.created_at.strftime("%Y-%m-%d %H:%M") }}</i>
+            </small>
+        </li>
+        {% endfor %}
+        {% if comments|length == 0 %}
+            <li style="color:#888;">لا توجد تعليقات.</li>
+        {% endif %}
+    </ul>
+    {% if user %}
+    <form action="/requests/{{ req.id }}/comments" method="post" style="margin-top:10px;">
+        <label for="comment">أضف تعليق:</label>
+        <textarea id="comment" name="content" required style="width:100%; min-height:40px; border-radius:6px; border:1px solid #ddd;"></textarea>
+        <button type="submit" class="btn btn-primary mt-2" style="margin-top:6px;">إرسال</button>
+    </form>
+    {% else %}
+        <div class="alert" style="color:#b71c1c;">سجّل الدخول لإضافة تعليق</div>
+    {% endif %}
+</div>
+
+<!-- زر تعديل الطلب (للمدير) -->
+{% if user and user.role == "manager" %}
+    <div style="max-width:540px; margin:auto; text-align:center; margin-top:18px;">
+        <a href="/requests/{{ req.id }}/edit" class="btn btn-warning">تعديل/تعيين الطلب</a>
+    </div>
+{% endif %}
+
+{% endblock %}

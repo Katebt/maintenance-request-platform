@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}إدارة المستخدمين{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:24px;">جميع المستخدمين</h2>
+<table style="width:100%; border-collapse:collapse; font-size: 0.97em;">
+    <thead>
+        <tr style="background:#eceff1;">
+            <th>#</th>
+            <th>الاسم</th>
+            <th>رقم الجوال</th>
+            <th>البريد</th>
+            <th>الدور</th>
+            <th>القسم</th>
+            <th>إجراءات</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for u in users %}
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="text-align:center;">{{ u.id }}</td>
+            <td>{{ u.name }}</td>
+            <td>{{ u.phone_number or "-" }}</td>
+            <td>{{ u.email }}</td>
+            <td>
+                {% if u.role == "manager" %}مدير
+                {% elif u.role == "engineer" %}مهندس
+                {% elif u.role == "superuser" %}مدير النظام
+                {% else %}مستخدم{% endif %}
+            </td>
+            <td>{{ u.department or "-" }}</td>
+            <td>
+                {% if u.role == "superuser" %}
+                    <span style="color:#999;">غير متاح</span>
+                {% else %}
+                    <a href="/users/{{ u.id }}/edit" style="color:#1976d2;">تعديل</a>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
