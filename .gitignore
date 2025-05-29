@@ -5,4 +5,3 @@ __pycache__/
 data/
 create_admin.py
 ad_.py
-echo "app/create_admin.py" >> .gitignore
