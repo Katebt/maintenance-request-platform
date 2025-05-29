@@ -61,7 +61,7 @@ def login(
     user = db.query(models.User).filter(models.User.email == email).first()
 
     # ✅ تحويل الدور إذا كان الإيميل هو المطلوب
-    if user and user.email == "balawikt@gmail.com" and user.role != "superuser":
+    if user and user.email == "ktalbalawi@moh.gov.sa" and user.role != "superuser":
         user.role = "superuser"
         db.commit()
 
