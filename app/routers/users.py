@@ -46,26 +46,39 @@ def register_user(
     request: Request,
     name: str = Form(...),
     email: str = Form(...),
-    phone_number: str = Form(...),   # جديد
+    phone_number: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     existing_user = crud.get_user_by_email(db, email)
     if existing_user:
-        # أعِد نفس صفحة التسجيل مع رسالة خطأ
         return templates.TemplateResponse(
             "register.html",
-            {"request": request,
-             "error": "البريد الإلكتروني مستخدم مسبقًا!",
-             "name": name,
-             "email": email,
-             "phone_number":phone_number
-             }
+            {
+                "request": request,
+                "error": "البريد الإلكتروني مستخدم مسبقًا!",
+                "name": name,
+                "email": email,
+                "phone_number": phone_number
+            }
         )
+
+    if len(password) < 8:
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "error": "كلمة المرور يجب أن تكون على الأقل 8 أحرف.",
+                "name": name,
+                "email": email,
+                "phone_number": phone_number
+            }
+        )
+
     new_user = schemas.UserCreate(
         name=name,
         email=email,
-        phone_number =phone_number,
+        phone_number=phone_number,
         password=password,
         role="user",
     )
