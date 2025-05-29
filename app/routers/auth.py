@@ -97,7 +97,7 @@ def dashboard(request: Request, token: str = Depends(get_token_from_cookie), db:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.role == "manager":
+    if user.role == "manager" or user.role == "superuser" :
         user_requests = db.query(models.Request).all()
     elif user.role == "engineer":
         user_requests = db.query(models.Request).filter(models.Request.assigned_engineer_id == user.id).all()
