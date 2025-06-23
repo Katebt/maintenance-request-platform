@@ -87,3 +87,23 @@ def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Option
         return user
     except Exception:
         return None
+
+
+from jose import jwt
+from datetime import datetime, timedelta
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+
+def create_reset_token(email: str, expires_minutes: int = 30):
+    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
+    return jwt.encode({"sub": email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_reset_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except Exception:
+        return None
+
+

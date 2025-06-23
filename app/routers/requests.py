@@ -6,6 +6,7 @@ from app.database import SessionLocal
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user
+from app.mail import send_email, build_email
 import imghdr
 from typing import Optional
 
@@ -101,7 +102,6 @@ async def create_request(
 
     file_path = None
     if image and image.filename:
-        # ✅ تحقق من نوع الملف
         if not image.content_type.startswith("image/"):
             return templates.TemplateResponse("index.html", {
                 "request": request,
@@ -132,7 +132,39 @@ async def create_request(
         db.add(db_attachment)
         db.commit()
 
-    return RedirectResponse(url="/?success=1", status_code=302)
+    # 🔔 إرسال البريد
+        # 📧 إرسال بريد لصاحب البلاغ
+        subject = f"تم استلام طلبك - رقم الطلب {db_request.id}"
+        body = f"""
+        <html><body>
+        <h3>عزيزي {requester_name}،</h3>
+        <p>تم استلام طلبك بنجاح.</p>
+        <p><strong>عنوان البلاغ:</strong> {title}</p>
+        <p><strong>رقم البلاغ:</strong> {db_request.id}</p>
+        <br>
+        <p>سنعمل على متابعته في أقرب وقت ممكن.</p>
+        </body></html>
+        """
+        send_email(email, subject, body)
+
+        # 📧 إرسال بريد للمدير
+        manager_email = "tabukmaternityandchildrenhospi@gmail.com"
+        subject = f"بلاغ جديد بحاجة إلى تعيين مهندس - رقم الطلب {db_request.id}"
+        body = f"""
+        <html><body>
+        <h3>عزيزي المدير،</h3>
+        <p>تم تسجيل بلاغ جديد في النظام.</p>
+        <p><strong>عنوان البلاغ:</strong> {title}</p>
+        <p><strong>اسم المبلغ:</strong> {requester_name}</p>
+        <p><strong>رقم الجوال:</strong> {phone_number}</p>
+        <p><strong>القسم:</strong> {department}</p>
+        <p><a href='https://maintenance-request-platform.onrender.com/requests/{db_request.id}'>عرض البلاغ</a></p>
+        </body></html>
+        """
+        send_email(manager_email, subject, body)
+
+        return RedirectResponse(url="/?success=1", status_code=302)
+
 
 @router.get("/{request_id}", response_class=HTMLResponse)
 def get_request_details(
@@ -230,6 +262,8 @@ async def update_request(
     else:
         req.assigned_engineer_id = None
 
+        ###هنا
+
     if completion_proof:
         file_path = utils.save_file(completion_proof)
         db_attachment = models.Attachment(
@@ -242,7 +276,56 @@ async def update_request(
 
     db.commit()
     db.refresh(req)
+
+    # ✅ إرسال إيميل عند تعيين المهندس
+    if assigned_engineer_id:
+        engineer = db.query(models.User).filter(models.User.id == assigned_engineer_id).first()
+        if engineer and engineer.email:
+            attachment = db.query(models.Attachment).filter(models.Attachment.request_id == req.id).first()
+            image_url = f"https://maintenance-request-platform.onrender.com/{attachment.file_path}" if attachment else None
+
+            subject = f"تم إسناد بلاغ رقم {req.id} - {req.title}"
+            body = f"""
+            <h3>تم إسناد بلاغ جديد لك</h3>
+            <p>تفاصيل البلاغ:</p>
+            <table border="1" cellpadding="6" cellspacing="0">
+              <tr><td><strong>رقم البلاغ</strong></td><td>{req.id}</td></tr>
+              <tr><td><strong>عنوان البلاغ</strong></td><td>{req.title}</td></tr>
+              <tr><td><strong>الوصف</strong></td><td>{req.description}</td></tr>
+              <tr><td><strong>الموقع</strong></td><td>{req.location}</td></tr>
+              <tr><td><strong>القسم</strong></td><td>{req.department}</td></tr>
+              <tr><td><strong>اسم المرسل</strong></td><td>{req.requester_name}</td></tr>
+              <tr><td><strong>البريد الإلكتروني</strong></td><td>{req.email}</td></tr>
+              <tr><td><strong>رقم الجوال</strong></td><td>{req.phone_number}</td></tr>
+            </table>
+                <br><br>
+                <p style="color: gray; font-size: 13px;">
+                مع تحيات<br>
+                فريق منصة بلاغات الصيانة<br>
+                مستشفى النساء والأطفال بتبوك
+                </p>
+            """
+
+            if image_url:
+                body += f"<p><strong>الصورة المرفقة:</strong><br><img src='{image_url}' width='300'></p>"
+
+            send_email(to_email=engineer.email, subject=subject, body=body)
+
+            requester_subject = f"تم إسناد بلاغك رقم {req.id}"
+            requester_body = f"""
+            <h3>تم إسناد بلاغك</h3>
+            <p>تم إسناد بلاغك بعنوان <strong>{req.title}</strong> إلى:</p>
+            <ul>
+              <li><strong>المهندس:</strong> {engineer.name}</li>
+              <li><strong>رقم الجوال:</strong> {engineer.phone_number or "غير متوفر"}</li>
+            </ul>
+            <p>سيتم التواصل معك في أقرب وقت لمباشرة البلاغ.</p>
+            """
+            send_email(to_email=req.email, subject=requester_subject, body=requester_body)
+
     return RedirectResponse(url=f"/requests/{request_id}", status_code=302)
+
+
 
 @router.post("/{request_id}/approve")
 def approve_request(

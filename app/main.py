@@ -27,12 +27,14 @@ templates = Jinja2Templates(directory="templates")
 models.Base.metadata.create_all(bind=engine)
 
 # تسجيل المسارات
+
 app.include_router(users.router)
 app.include_router(requests.router)
 app.include_router(comments.router)
 app.include_router(notifications.router)
 app.include_router(attachments.router)
 app.include_router(auth.router)
+
 
 from app.auth import get_optional_user  # بدّل للاسم الصحيح عندك
 

@@ -1,11 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
 from sqlalchemy.orm import Session
-from app import schemas, models, auth
+from app import schemas, models, auth, crud
 from app.database import SessionLocal
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from app.auth import get_current_user  # يجب أن يكون لديك هذا الديبندنسي
+from fastapi.responses import HTMLResponse
+from app import crud, auth
+from app.mail import send_email
+from sqlalchemy.orm import Session
+from fastapi.templating import Jinja2Templates
 
+templates = Jinja2Templates(directory="templates")
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 import os
@@ -110,10 +117,76 @@ def dashboard(request: Request, token: str = Depends(get_token_from_cookie), db:
         "requests": user_requests
     })
 
-
-
 @router.get("/logout")
 def logout():
     response = RedirectResponse(url="/auth/login", status_code=302)
     response.delete_cookie("access_token")
     return response
+
+
+BASE_URL = "https://maintenance.onrender.com"
+
+
+@router.get("/forgot-password", response_class=HTMLResponse)
+def forgot_password_page(request: Request):
+    return templates.TemplateResponse("forgot_password.html", {"request": request})
+
+@router.post("/forgot-password")
+def send_reset_email(request: Request, email: str = Form(...), db: Session = Depends(get_db)):
+    user = crud.get_user_by_email(db, email)
+    if not user:
+        return templates.TemplateResponse("forgot_password.html", {
+            "request": request,
+            "error": "لم يتم العثور على البريد"
+        })
+
+    token = auth.create_reset_token(user.email)
+    reset_link = f"{BASE_URL}/auth/reset-password?token={token}"
+
+    subject = "إعادة تعيين كلمة المرور"
+    body = f"""
+    <p>تم طلب إعادة تعيين كلمة المرور لحسابك.</p>
+    <p>اضغط على الرابط التالي لتعيين كلمة مرور جديدة:</p>
+    <p><a href="{reset_link}">{reset_link}</a></p>
+    <p>إذا لم تطلب ذلك، يمكنك تجاهل هذه الرسالة.</p>
+    """
+    send_email(to_email=email, subject=subject, body=body)
+
+    return templates.TemplateResponse("forgot_password.html", {
+        "request": request,
+        "message": "تم إرسال الرابط إلى بريدك"
+    })
+
+
+
+
+
+
+@router.get("/reset-password", response_class=HTMLResponse, name="reset_password_form")
+def reset_password_form(request: Request, token: str):
+    email = auth.verify_reset_token(token)
+    if not email:
+        return HTMLResponse("❌ الرابط غير صالح أو منتهي", status_code=400)
+    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
+
+
+@router.post("/reset-password")
+def reset_password(
+    token: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    if new_password != confirm_password:
+        return HTMLResponse("❌ كلمات المرور غير متطابقة", status_code=400)
+
+    email = auth.verify_reset_token(token)
+    if not email:
+        return HTMLResponse("❌ الرابط غير صالح أو منتهي", status_code=400)
+
+    user = crud.get_user_by_email(db, email)
+    from app.auth import get_password_hash
+    user.hashed_password = get_password_hash(new_password)
+    db.commit()
+
+    return HTMLResponse("✅ تم تغيير كلمة المرور بنجاح، يمكنك الآن تسجيل الدخول.", status_code=200)
