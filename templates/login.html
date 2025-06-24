@@ -1,34 +1,42 @@
-<!-- templates/login.html -->
+
 {% extends "base.html" %}
 
 {% block title %}تسجيل الدخول{% endblock %}
 
 {% block content %}
-<h2>تسجيل الدخول</h2>
-{% if error %}
-    <div class="alert alert-danger" style="color:red; padding:10px; background:#ffd7d7; border-radius:6px;">
-        {{ error }}
-    </div>
-{% endif %}
+<div class="login-form" style="max-width:400px; margin:auto; padding:20px; direction:rtl;">
 
+    <h2 style="text-align:center; margin-bottom:20px;">تسجيل الدخول</h2>
 
-{% if msg %}
-    <div class="alert" style="background:#dbf8cb; color:#165a0d; padding:12px; border-radius:6px; margin:20px 0; text-align:center;">
-        {{ msg }}
-    </div>
-{% endif %}
+    {% if error %}
+        <div class="alert alert-danger" style="color:red; padding:10px; background:#ffd7d7; border-radius:6px;">
+            {{ error }}
+        </div>
+    {% endif %}
 
+    {% if request.query_params.get('msg') %}
+        <div class="alert" style="background:#dbf8cb; color:#165a0d; padding:12px; border-radius:6px; margin:20px 0; text-align:center;">
+            {{ request.query_params.get('msg') }}
+        </div>
+    {% endif %}
 
-<form action="/auth/login" method="post" enctype="application/x-www-form-urlencoded">
-    <label for="email">البريد الإلكتروني:</label>
-    <input type="text" id="email" name="email" required>
+    <form action="/auth/login" method="post" enctype="application/x-www-form-urlencoded">
+        <div style="margin-bottom:15px;">
+            <label for="email">البريد الإلكتروني:</label>
+            <input type="text" id="email" name="email" required style="width:100%; padding:8px;">
+        </div>
 
-    <label for="password">كلمة المرور:</label>
-    <input type="password" id="password" name="password" required>
+        <div style="margin-bottom:15px;">
+            <label for="password">كلمة المرور:</label>
+            <input type="password" id="password" name="password" required style="width:100%; padding:8px;">
+        </div>
 
-    <button type="submit">تسجيل الدخول</button>
-</form>
+        <button type="submit" style="width:100%; padding:10px; background:#2260ae; color:white; border:none; border-radius:6px;">تسجيل الدخول</button>
+    </form>
 
+    <p style="margin-top:15px; text-align:center;">
+        <a href="/auth/forgot-password">هل نسيت كلمة المرور؟</a>
+    </p>
 
-<p>ليس لديك حساب؟ <a href="/users/register">تسجيل حساب جديد</a></p>
+</div>
 {% endblock %}
