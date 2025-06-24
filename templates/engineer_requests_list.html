@@ -35,7 +35,7 @@
   <tr>
     <td>{{ req.id }}</td>
     <td>
-     {{ req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else "-" }}
+     {{ req.created_at.strftime('%Y-%m-%d') if req.created_at else "-" }}
     </td>
     <td>{{ req.title }}</td>
     <td>{{ req.status }}</td>
@@ -48,7 +48,7 @@
     </td>
               <td>
 {% if req.status in ["Completed", "Closed"] and req.updated_at %}
-    {{ req.updated_at.strftime('%Y-%m-%d %H:%M') }}
+    {{ req.updated_at.strftime('%Y-%m-%d') }}
 {% else %}
     -
 {% endif %}

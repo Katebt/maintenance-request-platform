@@ -1,12 +1,12 @@
 # app/routers/requests.py
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Request
 from sqlalchemy.orm import Session
-from app import schemas, models, crud, utils
+from app import  models, crud, utils
 from app.database import SessionLocal
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user
-from app.mail import send_email, build_email
+from app.mail import send_email
 
 from typing import Optional
 
@@ -330,7 +330,6 @@ async def update_request(
                 الدخول للنظام
               </a>
             </p>
-
             
                 <br><br>
                 <p style="color: gray; font-size: 13px;">
@@ -364,7 +363,6 @@ async def update_request(
             send_email(to_email=req.email, subject=requester_subject, body=requester_body)
 
     return RedirectResponse(url=f"/requests/{request_id}", status_code=302)
-
 
 
 @router.post("/{request_id}/approve")

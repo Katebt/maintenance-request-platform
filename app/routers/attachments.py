@@ -1,5 +1,5 @@
 # app/routers/attachments.py
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app import schemas, models, crud, utils
 from app.database import SessionLocal

@@ -1,7 +1,7 @@
 # app/routers/comments.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-from app import schemas, models, crud
+from app import schemas, crud
 from app.database import SessionLocal
 from typing import List
 

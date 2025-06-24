@@ -103,7 +103,7 @@
             <b>{{ comment.user.name }}</b>: {{ comment.content }}
             <br>
             <small style="color:#666;">
-                <i>{{ comment.created_at.strftime("%Y-%m-%d %H:%M") }}</i>
+                <i>{{ comment.created_at.strftime("%Y-%m-%d") }}</i>
             </small>
         </li>
         {% endfor %}
