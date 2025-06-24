@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user
 from app.mail import send_email, build_email
-import imghdr
+
 from typing import Optional
 
 router = APIRouter(prefix="/requests", tags=["Requests"])
@@ -143,7 +143,14 @@ async def create_request(
         <p><strong>رقم البلاغ:</strong> {db_request.id}</p>
         <br>
         <p>سنعمل على متابعته في أقرب وقت ممكن.</p>
-        </body></html>
+        </body>
+            <br><br>
+            <p style="color: gray; font-size: 13px;">
+              مع تحيات<br>
+              فريق منصة بلاغات الصيانة<br>
+              مستشفى النساء والأطفال بتبوك
+            </p>
+        </html>
         """
         send_email(email, subject, body)
 
@@ -151,19 +158,40 @@ async def create_request(
         manager_email = "tabukmaternityandchildrenhospi@gmail.com"
         subject = f"بلاغ جديد بحاجة إلى تعيين مهندس - رقم الطلب {db_request.id}"
         body = f"""
-        <html><body>
-        <h3>عزيزي المدير،</h3>
-        <p>تم تسجيل بلاغ جديد في النظام.</p>
-        <p><strong>عنوان البلاغ:</strong> {title}</p>
-        <p><strong>اسم المبلغ:</strong> {requester_name}</p>
-        <p><strong>رقم الجوال:</strong> {phone_number}</p>
-        <p><strong>القسم:</strong> {department}</p>
-        <p><a href='https://maintenance-request-platform.onrender.com/requests/{db_request.id}'>عرض البلاغ</a></p>
-        </body></html>
+        <html>
+          <body>
+          
+            <h3>عزيزي المدير،</h3>
+            <p>تم تسجيل بلاغ جديد في النظام، التفاصيل كالتالي:</p>
+            <table border="1" cellpadding="6" cellspacing="0">
+              <tr><td><strong>رقم البلاغ</strong></td><td>{db_request.id}</td></tr>
+              <tr><td><strong>عنوان البلاغ</strong></td><td>{db_request.title}</td></tr>
+              <tr><td><strong>الوصف</strong></td><td>{db_request.description}</td></tr>
+              <tr><td><strong>الموقع</strong></td><td>{db_request.location}</td></tr>
+              <tr><td><strong>القسم</strong></td><td>{db_request.department}</td></tr>
+              <tr><td><strong>اسم المرسل</strong></td><td>{db_request.requester_name}</td></tr>
+              <tr><td><strong>البريد الإلكتروني</strong></td><td>{db_request.email}</td></tr>
+              <tr><td><strong>رقم الجوال</strong></td><td>{db_request.phone_number}</td></tr>
+            </table>
+            <p style="margin-top: 20px;">
+              <a href='https://maintenance-request-platform.onrender.com/auth/login' style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                الدخول للنظام
+              </a>
+            </p>
+
+            <br><br>
+            <p style="color: gray; font-size: 13px;">
+              مع تحيات<br>
+              فريق منصة بلاغات الصيانة<br>
+              مستشفى النساء والأطفال بتبوك
+            </p>
+          </body>
+        </html>
         """
         send_email(manager_email, subject, body)
+        print(send_email(manager_email, subject, body))
 
-        return RedirectResponse(url="/?success=1", status_code=302)
+    return RedirectResponse(url="/?success=1", status_code=302)
 
 
 @router.get("/{request_id}", response_class=HTMLResponse)
@@ -282,11 +310,10 @@ async def update_request(
         engineer = db.query(models.User).filter(models.User.id == assigned_engineer_id).first()
         if engineer and engineer.email:
             attachment = db.query(models.Attachment).filter(models.Attachment.request_id == req.id).first()
-            image_url = f"https://maintenance-request-platform.onrender.com/{attachment.file_path}" if attachment else None
-
+            image_url = attachment.file_path if attachment else None
             subject = f"تم إسناد بلاغ رقم {req.id} - {req.title}"
             body = f"""
-            <h3>تم إسناد بلاغ جديد لك</h3>
+            <h3>تم إسناد بلاغ جديد لك {engineer.name}</h3>
             <p>تفاصيل البلاغ:</p>
             <table border="1" cellpadding="6" cellspacing="0">
               <tr><td><strong>رقم البلاغ</strong></td><td>{req.id}</td></tr>
@@ -298,6 +325,13 @@ async def update_request(
               <tr><td><strong>البريد الإلكتروني</strong></td><td>{req.email}</td></tr>
               <tr><td><strong>رقم الجوال</strong></td><td>{req.phone_number}</td></tr>
             </table>
+            <p style="margin-top: 20px;">
+              <a href='https://maintenance-request-platform.onrender.com/auth/login' style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                الدخول للنظام
+              </a>
+            </p>
+
+            
                 <br><br>
                 <p style="color: gray; font-size: 13px;">
                 مع تحيات<br>
@@ -320,6 +354,12 @@ async def update_request(
               <li><strong>رقم الجوال:</strong> {engineer.phone_number or "غير متوفر"}</li>
             </ul>
             <p>سيتم التواصل معك في أقرب وقت لمباشرة البلاغ.</p>
+              <br><br>
+                <p style="color: gray; font-size: 13px;">
+                مع تحيات<br>
+                فريق منصة بلاغات الصيانة<br>
+                مستشفى النساء والأطفال بتبوك
+                </p>
             """
             send_email(to_email=req.email, subject=requester_subject, body=requester_body)
 
