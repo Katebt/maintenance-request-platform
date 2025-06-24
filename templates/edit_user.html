@@ -15,7 +15,7 @@
         <option value="engineer" {% if edit_user.role == "engineer" %}selected{% endif %}>مهندس صيانة</option>
         <option value="manager" {% if edit_user.role == "manager" %}selected{% endif %}>مدير</option>
         {% if user.role == "superuser" %}
-        <option value="admin" {% if edit_user.role == "admin" %}selected{% endif %}>مدير النظام</option>
+        <option value="admin" {% if edit_user.role == "superuser" %}selected{% endif %}>مدير النظام</option>
          {% endif %}
     </select>
 

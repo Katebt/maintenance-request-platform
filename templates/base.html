@@ -7,21 +7,21 @@
     <link rel="stylesheet" href="/static/css/bootstrap.rtl.min.css">
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 </head>
 <body>
 <nav style="display: flex; align-items: center; gap: 16px; background: #f7f7fa; padding: 10px 24px;">
     {% if request.url.path != '/' %}
         <a href="javascript:window.history.back();" class="btn"
            style="padding:8px 22px; background:#eceff1; border-radius:7px; text-decoration:none; color:#1565c0; font-weight:500; transition:background 0.17s;"
-           aria-label="عودة">
-            ⬅️ عودة
+           aria-label="رجوع">
+            ⬅️ رجوع
         </a>
     {% endif %}
 
         <a href="/">الرئيسية</a>
         {% if user and user.role in ["manager", "admin","superuser"] %}
-    <a href="/users/list">إدارة المستخدمين</a>
-{% endif %}
+        <a href="/users/list">إدارة المستخدمين</a> {% endif %}
 
         {% if user and user.role == "engineer" %}
             <a href="/requests/my_requests">طلباتي</a>
@@ -43,6 +43,7 @@
             <a href="/auth/logout" style="color:#d22;">تسجيل خروج</a>
         {% else %}
             <a href="/auth/login">تسجيل الدخول</a>
+            <a href="/auth/forgot-password"> نسيت كلمة المرور</a>
             <a href="/users/register">تسجيل جديد</a>
         {% endif %}
     </nav>

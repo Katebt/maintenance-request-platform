@@ -6,8 +6,19 @@
 {% block content %}
 <h2>تسجيل الدخول</h2>
 {% if error %}
-    <div class="alert alert-danger" style="color:red;">{{ error }}</div>
+    <div class="alert alert-danger" style="color:red; padding:10px; background:#ffd7d7; border-radius:6px;">
+        {{ error }}
+    </div>
 {% endif %}
+
+
+{% if msg %}
+    <div class="alert" style="background:#dbf8cb; color:#165a0d; padding:12px; border-radius:6px; margin:20px 0; text-align:center;">
+        {{ msg }}
+    </div>
+{% endif %}
+
+
 <form action="/auth/login" method="post" enctype="application/x-www-form-urlencoded">
     <label for="email">البريد الإلكتروني:</label>
     <input type="text" id="email" name="email" required>
@@ -17,11 +28,7 @@
 
     <button type="submit">تسجيل الدخول</button>
 </form>
-{% if request.query_params.get('success') %}
-    <div class="alert" style="background:#dbf8cb; color:#165a0d; padding:12px; border-radius:6px; margin:20px 0; text-align:center;">
-        ✅ تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول.
-    </div>
-{% endif %}
+
 
 <p>ليس لديك حساب؟ <a href="/users/register">تسجيل حساب جديد</a></p>
 {% endblock %}

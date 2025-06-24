@@ -189,4 +189,9 @@ def reset_password(
     user.hashed_password = get_password_hash(new_password)
     db.commit()
 
-    return HTMLResponse("✅ تم تغيير كلمة المرور بنجاح، يمكنك الآن تسجيل الدخول.", status_code=200)
+    # Redirect to login with success message
+
+    return RedirectResponse(
+        url="/auth/login?msg=✅ تم تغيير كلمة المرور بنجاح",
+        status_code=status.HTTP_303_SEE_OTHER
+    )

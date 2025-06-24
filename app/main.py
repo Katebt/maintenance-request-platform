@@ -45,8 +45,12 @@ def index(
     user: models.User = Depends(get_optional_user)  # ← ليس get_current_user!
 ):
     if user:
-        if user.role == "manager" or user.role == "superuser":
+        if user.role == "manager":
             return RedirectResponse(url="/auth/dashboard")
+
+        elif user.role == "superuser":
+            return RedirectResponse(url="/users")
+
         elif user.role == "engineer":
             return RedirectResponse(url="/requests/my_requests")
         else:
