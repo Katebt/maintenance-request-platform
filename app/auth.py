@@ -1,25 +1,26 @@
+#app/auth.py
 from datetime import datetime, timedelta
 from typing import Optional
-
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
-
 from app.database import SessionLocal
 from app import models
-
 import os
-
-# ✅ تحميل المتغيرات من .env في بيئة التطوير فقط
-if os.getenv("ENV") != "production":
-    from dotenv import load_dotenv
-    load_dotenv()
 
 # ✅ إعداد المتغيرات
 SECRET_KEY = os.environ.get("SECRET_KEY")
 ALGORITHM = os.environ.get("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+
+from fastapi.security import OAuth2PasswordBearer
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+
+# ✅ تحميل المتغيرات من .env في بيئة التطوير فقط
+if os.getenv("ENV") != "production":
+    from dotenv import load_dotenv
+    load_dotenv()
 
 if not SECRET_KEY:
     raise RuntimeError("❌ SECRET_KEY is missing from environment variables!")
@@ -75,6 +76,25 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == payload.get("user_id")).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+def get_current_user_from_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("user_id")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
     return user
 
 def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[models.User]:

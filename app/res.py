@@ -1,17 +1,37 @@
-from app.database import SessionLocal
-from app.models import User
-from app.auth import get_password_hash
+import requests
 
-# بيانات الدخول الجديدة
-email = "balawikt@gmail.com"
-new_password = "123456"  # ضع الباسوورد الجديد هنا
+BASE_URL = "http://127.0.0.1:8000"
 
-db = SessionLocal()
-user = db.query(User).filter(User.email == email).first()
+# بيانات المستخدم
+email = "adel@moh.gov.sa"
+password = "43214321"
 
-if user:
-    user.hashed_password = get_password_hash(new_password)
-    db.commit()
-    print("✅ تم تحديث كلمة المرور")
+# 1. تسجيل الدخول للحصول على التوكن
+login_response = requests.post(
+    f"{BASE_URL}/api/auth/token",
+    data={
+        "email": email,
+        "password": password
+    }
+)
+
+if login_response.status_code == 200:
+    token = login_response.json().get("access_token")
+    print("✅ تم الحصول على التوكن:\n", token)
+
+    # 2. إعداد الهيدر
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # 3. إرسال الطلب لاسترجاع البلاغات
+    response = requests.get(f"{BASE_URL}/api/requests/my", headers=headers)
+
+    if response.status_code == 200:
+        print("✅ الطلبات المسترجعة:")
+        for req in response.json():
+            print(f"- #{req['id']}: {req['title']} (الحالة: {req['status']})")
+    else:
+        print("❌ فشل في استرجاع الطلبات:", response.status_code, response.text)
 else:
-    print("❌ لم يتم العثور على المستخدم")
+    print("❌ فشل تسجيل الدخول:", login_response.status_code, login_response.text)

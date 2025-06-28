@@ -41,8 +41,8 @@
                 <td style="text-align:center;">{{ loop.index }}</td>
                 <td>{{ req.title }}</td>
                 <td>
-                    {% if req.status == 'Pending' %}
-                        <span style="color:#e6a700;">قيد الانتظار</span>
+                    {% if req.status == 'new' %}
+                        <span style="color:#e6a700;">جديد</span>
                     {% elif req.status == 'In Progress' %}
                         <span style="color:#2196f3;">قيد التنفيذ</span>
                     {% elif req.status == 'Completed' %}

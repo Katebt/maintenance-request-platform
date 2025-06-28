@@ -5,56 +5,71 @@
     <title>{% block title %}منصة طلبات الصيانة{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="stylesheet" href="/static/css/bootstrap.rtl.min.css">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 </head>
 <body>
-<nav style="display: flex; align-items: center; gap: 16px; background: #f7f7fa; padding: 10px 24px;">
+
+<header class="mobile-header">
+  <div class="header-top">
+    <img src="/static/images/hospital-logo.png" class="logo" alt="شعار">
+    <div class="header-info">
+      <h1>مستشفى الولادة والأطفال</h1>
+      <p>إدارة الصيانة</p>
+    </div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="/">الرئيسية</a>
     {% if request.url.path != '/' %}
-        <a href="javascript:window.history.back();" class="btn"
-           style="padding:8px 22px; background:#eceff1; border-radius:7px; text-decoration:none; color:#1565c0; font-weight:500; transition:background 0.17s;"
-           aria-label="رجوع">
-            ⬅️ رجوع
-        </a>
+      <a href="javascript:window.history.back();" class="btn"
+         style="padding:8px 22px; background:#eceff1; border-radius:7px; text-decoration:none; color:#1565c0; font-weight:500; transition:background 0.17s;"
+         aria-label="رجوع">⬅️ رجوع</a>
     {% endif %}
 
-        <a href="/">الرئيسية</a>
-        {% if user and user.role in ["manager", "admin","superuser"] %}
-        <a href="/users/list">إدارة المستخدمين</a> {% endif %}
-
-        {% if user and user.role == "engineer" %}
-            <a href="/requests/my_requests">طلباتي</a>
-        {% endif %}
-        {% if user and user.role == "manager" %}
+    {% if user and user.role in ["manager","superuser"] %}
+        <a href="/users/list">إدارة المستخدمين</a>
+    {% endif %}
+    {% if user and user.role == "engineer" %}
+        <a href="/requests/my_requests">طلباتي</a>
+    {% endif %}
+    {% if user %}
+        {% if user.role in ["manager", "admin", "superuser"] %}
             <a href="/requests/list">إدارة الطلبات</a>
+        {% elif user.role == "user" %}
+            <a href="/users/dashboard">لوحة التحكم</a>
         {% endif %}
-        {% if user %}
-            <!--a href="/notifications" style="fonts-size:1.25em;">🔔 الإشعارات</a> -->
-            <span class="user-badge" style="color:#444; margin:0 10px;">
-                👤 {{ user.name }}
-                (
-                {% if user.role == "manager" %}مدير
-                {% elif user.role == "engineer" %}مهندس
-                {% elif user.role == "superuser" %}مدير النظام
-                {% else %}مستخدم{% endif %}
-                )
-            </span>
-            <a href="/auth/logout" style="color:#d22;">تسجيل خروج</a>
-        {% else %}
-            <a href="/auth/login">تسجيل الدخول</a>
-            <a href="/auth/forgot-password"> نسيت كلمة المرور</a>
-            <a href="/users/register">تسجيل جديد</a>
-        {% endif %}
-    </nav>
-    <div class="container">
-        {% block content %}{% endblock %}
-        <!-- يمكن حذف أزرار العودة الإضافية من الأسفل لأنها أصبحت في الأعلى -->
-    </div>
-    <footer>
-        © جميع الحقوق محفوظة 2025 منصة طلبات الصيانة
-    </footer>
+        <span class="user-badge" style="color:#444; margin:0 10px;">
+            👤 {{ user.name }}
+            (
+            {% if user.role == "manager" %}مدير
+            {% elif user.role == "engineer" %}مهندس
+            {% elif user.role == "superuser" %}مدير النظام
+            {% else %}مستخدم{% endif %}
+            )
+        </span>
+        <a href="/auth/logout" style="color:#d22;">تسجيل خروج</a>
+    {% else %}
+        <a href="/auth/login">تسجيل الدخول</a>
+        <a href="/auth/forgot-password">نسيت كلمة المرور</a>
+        <a href="/users/register">تسجيل جديد</a>
+    {% endif %}
+  </nav>
+</header>
+
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+
+<footer>
+    © جميع الحقوق محفوظة 2025 منصة طلبات الصيانة
+</footer>
 
 <script src="/static/js/bootstrap.bundle.min.js"></script>
+<script>
+  function toggleMenu() {
+    const nav = document.getElementById('mobileNav');
+    nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
+  }
+</script>
 </body>
 </html>

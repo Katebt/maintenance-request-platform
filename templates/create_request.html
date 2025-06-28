@@ -1,20 +1,6 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>{% block title %}منصة طلبات الصيانة{% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <link rel="stylesheet" href="/static/css/bootstrap.rtl.min.css">
+{% extends "base.html" %}
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-
-<nav style="display: flex; align-items: center; gap: 16px; background: #f7f7fa; padding: 10px 24px;">
-
-    <a href="/">  تجمع تبوك الصحي - مستشفى الولادة والأطفال- إدارة الصيانة
-    -نموذج طلب صيانة</a>
-</nav>
-
+{% block title %}منصة إدارة الصيانة{% endblock %}
 
 {% block content %}
 <div class="container d-flex align-items-center justify-content-center" style="min-height:80vh;">
@@ -48,12 +34,16 @@
                 <label for="location" class="form-label">الموقع</label>
                 <select name="location" id="location" class="form-select" required>
                     <option value="" selected disabled>اختر الموقع...</option>
+                    <option value="Main Building - Basement">Cluster Building </option>
                     <option value="Main Building - Basement">Main Building - Basement</option>
                     <option value="Main Building - Ground floor">Main Building - Ground floor</option>
                     <option value="Main Building - First floor">Main Building - First floor</option>
                     <option value="Main Building - Second Floor">Main Building - Second Floor</option>
                     <option value="Main Building - Third floor">Main Building - Third floor</option>
                     <option value="Main Building - Fourth floor">Main Building - Fourth floor</option>
+                    <option value="Main Building - Basement">Cluster Building </option>
+                    <option value="Main Building - Basement">Maintenance Building </option>
+                    <option value="Main Building - Basement">Housing </option>
                     <option value="Other">Other (specify)</option>
                 </select>
             </div>

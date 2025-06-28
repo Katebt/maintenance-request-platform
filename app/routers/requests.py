@@ -7,8 +7,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user
 from app.mail import send_email
-
 from typing import Optional
+from fastapi import BackgroundTasks
 
 router = APIRouter(prefix="/requests", tags=["Requests"])
 templates = Jinja2Templates(directory="templates")
@@ -26,12 +26,20 @@ def new_request(request: Request):
 
 @router.get("/my_requests", response_class=HTMLResponse)
 def my_requests(request: Request, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+
+    # المهندس: الطلبات المسندة له
     if user.role == "engineer":
         requests_q = db.query(models.Request).filter(models.Request.assigned_engineer_id == user.id)
-    else:
+
+    # المستخدم العادي: الطلبات اللي هو أنشأها (حسب الإيميل)
+    elif user.role == "user":
         requests_q = db.query(models.Request).filter(models.Request.email == user.email)
 
-    pending_count = requests_q.filter(models.Request.status == "Pending").count()
+    # المدير أو المشرف يشوف كل الطلبات
+    else:
+        requests_q = db.query(models.Request)
+
+    new = requests_q.filter(models.Request.status == "new").count()
     inprogress_count = requests_q.filter(models.Request.status == "In Progress").count()
     completed_count = requests_q.filter(models.Request.status == "Completed").count()
     closed_count = requests_q.filter(models.Request.status == "Closed").count()
@@ -43,7 +51,7 @@ def my_requests(request: Request, db: Session = Depends(get_db), user: models.Us
             "request": request,
             "user": user,
             "requests": requests_list,
-            "pending_count": pending_count,
+            "new": new,
             "inprogress_count": inprogress_count,
             "completed_count": completed_count,
             "closed_count": closed_count,
@@ -51,41 +59,97 @@ def my_requests(request: Request, db: Session = Depends(get_db), user: models.Us
     )
 
 @router.get("/list", response_class=HTMLResponse)
-def list_requests(request: Request, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
-    all_requests = db.query(models.Request).all()
-    pending_count = db.query(models.Request).filter(models.Request.status == "Pending").count()
-    inprogress_count = db.query(models.Request).filter(models.Request.status == "In Progress").count()
-    completed_count = db.query(models.Request).filter(models.Request.status == "Completed").count()
-    closed_count = db.query(models.Request).filter(models.Request.status == "Closed").count()
-    pending_approval_count = db.query(models.Request).filter(models.Request.status == "Pending Approval").count()
+def list_requests(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    # المهندس والمدير يشوفون كل الطلبات
+    if user.role in ["manager", "engineer", "admin", "superuser"]:
+        requests_q = db.query(models.Request)
+    else:
+        # المستخدم العادي: فقط الطلبات اللي أرسلها بنفس إيميله
+        requests_q = db.query(models.Request).filter(models.Request.email == user.email)
+
+    # الإحصائيات حسب الطلبات المتاحة له
+    new = requests_q.filter(models.Request.status == "new").count()
+    inprogress_count = requests_q.filter(models.Request.status == "In Progress").count()
+    completed_count = requests_q.filter(models.Request.status == "Completed").count()
+    closed_count = requests_q.filter(models.Request.status == "Closed").count()
+    pending_approval_count = requests_q.filter(models.Request.status == "Pending Approval").count()
+    requests_list = requests_q.all()
 
     return templates.TemplateResponse(
         "requests_list.html",
         {
-            "pending_approval_count":pending_approval_count,
+            "pending_approval_count": pending_approval_count,
             "request": request,
             "user": user,
-            "requests": all_requests,
-            "pending_count": pending_count,
+            "requests": requests_list,
+            "new": new,
             "inprogress_count": inprogress_count,
             "completed_count": completed_count,
             "closed_count": closed_count,
         }
     )
 
+@router.get("/export_excel")
+def export_requests_excel(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    # جلب الطلبات حسب الدور
+    if user.role in ["admin", "manager", "engineer", "superuser"]:
+        requests_q = db.query(models.Request)
+    else:
+        requests_q = db.query(models.Request).filter(models.Request.email == user.email)
+
+    requests_list = requests_q.all()
+
+    # تحويل البيانات إلى DataFrame
+    data = []
+    for req in requests_list:
+        data.append({
+            "رقم الطلب": req.id,
+            "العنوان": req.title,
+            "الوصف": req.description,
+            "القسم": req.department,
+            "الموقع": req.location,
+            "الحالة": req.status,
+            "تاريخ الإنشاء": req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else '',
+        })
+
+    df = pd.DataFrame(data)
+
+    # حفظ الملف في الذاكرة
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name="الطلبات")
+
+    output.seek(0)
+    filename = "requests.xlsx"
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 @router.post("/", response_class=HTMLResponse)
 async def create_request(
-        request: Request,
-        requester_name: str = Form(...),
-        email: str = Form(...),
-        phone_number: str = Form(...),
-        title: str = Form(...),
-        description: str = Form(...),
-        location: str = Form(...),
-        department: str = Form(...),
-        image: UploadFile = File(None),
-        db: Session = Depends(get_db)
+    request: Request,
+    background_tasks: BackgroundTasks,
+    requester_name: str = Form(...),
+    email: str = Form(...),
+    phone_number: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(...),
+    location: str = Form(...),
+    department: str = Form(...),
+    image: UploadFile = File(None),
+    db: Session = Depends(get_db)
 ):
+    # التحقق من الحقول المطلوبة
     if not all([
         requester_name.strip(),
         email.strip(),
@@ -100,15 +164,15 @@ async def create_request(
             "error": "جميع الحقول مطلوبة ما عدا الصورة",
         })
 
-    file_path = None
+    # التحقق من نوع الملف (صورة فقط)
     if image and image.filename:
         if not image.content_type.startswith("image/"):
             return templates.TemplateResponse("index.html", {
                 "request": request,
                 "error": "الملف المرفق يجب أن يكون صورة."
             })
-        file_path = utils.save_file(image)
 
+    # إنشاء سجل الطلب
     db_request = models.Request(
         title=title,
         description=description,
@@ -122,77 +186,72 @@ async def create_request(
     db.commit()
     db.refresh(db_request)
 
-    if file_path:
-        db_attachment = models.Attachment(
-            request_id=db_request.id,
-            file_name=image.filename,
-            file_path=file_path,
-            file_type="completion_proof"
+    # ✅ رفع الصورة في الخلفية بعد إنشاء الطلب
+    if image and image.filename:
+        temp_path = utils.save_temp_image(image)
+        background_tasks.add_task(
+            utils.upload_to_cloudinary_and_save_attachment,
+            db_request.id,
+            temp_path,
+            image.filename
         )
-        db.add(db_attachment)
-        db.commit()
 
-    # 🔔 إرسال البريد
-        # 📧 إرسال بريد لصاحب البلاغ
-        subject = f"تم استلام طلبك - رقم الطلب {db_request.id}"
-        body = f"""
-        <html><body>
-        <h3>عزيزي {requester_name}،</h3>
-        <p>تم استلام طلبك بنجاح.</p>
-        <p><strong>عنوان البلاغ:</strong> {title}</p>
-        <p><strong>رقم البلاغ:</strong> {db_request.id}</p>
-        <br>
-        <p>سنعمل على متابعته في أقرب وقت ممكن.</p>
-        </body>
-            <br><br>
-            <p style="color: gray; font-size: 13px;">
-              مع تحيات<br>
-              فريق منصة بلاغات الصيانة<br>
-              مستشفى النساء والأطفال بتبوك
-            </p>
-        </html>
-        """
-        send_email(email, subject, body)
+    # ✅ إرسال بريد للمستخدم (خلفية)
+    subject = f"تم استلام طلبك - رقم الطلب {db_request.id}"
+    body = f"""
+    <html><body>
+    <h3>عزيزي {requester_name}،</h3>
+    <p>تم استلام طلبك بنجاح.</p>
+    <p><strong>عنوان البلاغ:</strong> {title}</p>
+    <p><strong>رقم البلاغ:</strong> {db_request.id}</p>
+    <br>
+    <p>سنعمل على متابعته في أقرب وقت ممكن.</p>
+    <br><br>
+    <p style="color: gray; font-size: 13px;">
+      مع تحيات<br>
+      فريق منصة بلاغات الصيانة<br>
+      مستشفى النساء والأطفال بتبوك
+    </p>
+    </body></html>
+    """
+    background_tasks.add_task(send_email, email, subject, body)
 
-        # 📧 إرسال بريد للمدير
-        manager_email = "tabukmaternityandchildrenhospi@gmail.com"
-        subject = f"بلاغ جديد بحاجة إلى تعيين مهندس - رقم الطلب {db_request.id}"
-        body = f"""
-        <html>
-          <body>
-          
-            <h3>عزيزي المدير،</h3>
-            <p>تم تسجيل بلاغ جديد في النظام، التفاصيل كالتالي:</p>
-            <table border="1" cellpadding="6" cellspacing="0">
-              <tr><td><strong>رقم البلاغ</strong></td><td>{db_request.id}</td></tr>
-              <tr><td><strong>عنوان البلاغ</strong></td><td>{db_request.title}</td></tr>
-              <tr><td><strong>الوصف</strong></td><td>{db_request.description}</td></tr>
-              <tr><td><strong>الموقع</strong></td><td>{db_request.location}</td></tr>
-              <tr><td><strong>القسم</strong></td><td>{db_request.department}</td></tr>
-              <tr><td><strong>اسم المرسل</strong></td><td>{db_request.requester_name}</td></tr>
-              <tr><td><strong>البريد الإلكتروني</strong></td><td>{db_request.email}</td></tr>
-              <tr><td><strong>رقم الجوال</strong></td><td>{db_request.phone_number}</td></tr>
-            </table>
-            <p style="margin-top: 20px;">
-              <a href='https://maintenance-request-platform.onrender.com/auth/login' style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                الدخول للنظام
-              </a>
-            </p>
+    # ✅ إرسال بريد للمدير (خلفية)
+    manager_email = "tabukmaternityandchildrenhospi@gmail.com"
+    subject = f"بلاغ جديد بحاجة إلى تعيين مهندس - رقم الطلب {db_request.id}"
+    body = f"""
+    <html>
+      <body>
+        <h3>عزيزي المدير،</h3>
+        <p>تم تسجيل بلاغ جديد في النظام، التفاصيل كالتالي:</p>
+        <table border="1" cellpadding="6" cellspacing="0">
+          <tr><td><strong>رقم البلاغ</strong></td><td>{db_request.id}</td></tr>
+          <tr><td><strong>عنوان البلاغ</strong></td><td>{db_request.title}</td></tr>
+          <tr><td><strong>الوصف</strong></td><td>{db_request.description}</td></tr>
+          <tr><td><strong>الموقع</strong></td><td>{db_request.location}</td></tr>
+          <tr><td><strong>القسم</strong></td><td>{db_request.department}</td></tr>
+          <tr><td><strong>اسم المرسل</strong></td><td>{db_request.requester_name}</td></tr>
+          <tr><td><strong>البريد الإلكتروني</strong></td><td>{db_request.email}</td></tr>
+          <tr><td><strong>رقم الجوال</strong></td><td>{db_request.phone_number}</td></tr>
+        </table>
+        <p style="margin-top: 20px;">
+          <a href='https://maintenance-request-platform.onrender.com/auth/login' style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+            الدخول للنظام
+          </a>
+        </p>
+        <br><br>
+        <p style="color: gray; font-size: 13px;">
+          مع تحيات<br>
+          فريق منصة بلاغات الصيانة<br>
+          مستشفى النساء والأطفال بتبوك
+        </p>
+      </body>
+    </html>
+    """
+    background_tasks.add_task(send_email, manager_email, subject, body)
 
-            <br><br>
-            <p style="color: gray; font-size: 13px;">
-              مع تحيات<br>
-              فريق منصة بلاغات الصيانة<br>
-              مستشفى النساء والأطفال بتبوك
-            </p>
-          </body>
-        </html>
-        """
-        send_email(manager_email, subject, body)
-        print(send_email(manager_email, subject, body))
-
+    # ✅ توجيه المستخدم فورًا بدون انتظار الإيميلات أو رفع الصورة
     return RedirectResponse(url="/?success=1", status_code=302)
-
 
 @router.get("/{request_id}", response_class=HTMLResponse)
 def get_request_details(
@@ -261,6 +320,8 @@ def edit_request(
 @router.post("/{request_id}/update")
 async def update_request(
     request_id: int,
+    background_tasks: BackgroundTasks,
+
     title: str = Form(...),
     description: str = Form(...),
     category: str = Form(...),
@@ -269,7 +330,8 @@ async def update_request(
     assigned_engineer_id: Optional[int] = Form(None),
     completion_proof: UploadFile = File(None),
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user)
+    user: models.User = Depends(get_current_user),
+
 ):
     req = crud.get_request(db, request_id)
     if not req:
@@ -287,12 +349,15 @@ async def update_request(
 
     if assigned_engineer_id:
         req.assigned_engineer_id = assigned_engineer_id
+        if req.status == "new":
+            req.status = "In Progress"
     else:
         req.assigned_engineer_id = None
 
-        ###هنا
 
-    if completion_proof:
+        ###
+
+    if completion_proof and completion_proof.filename.strip():
         file_path = utils.save_file(completion_proof)
         db_attachment = models.Attachment(
             request_id=req.id,
@@ -339,10 +404,7 @@ async def update_request(
                 </p>
             """
 
-            if image_url:
-                body += f"<p><strong>الصورة المرفقة:</strong><br><img src='{image_url}' width='300'></p>"
-
-            send_email(to_email=engineer.email, subject=subject, body=body)
+            background_tasks.add_task(send_email, engineer.email, subject, body)
 
             requester_subject = f"تم إسناد بلاغك رقم {req.id}"
             requester_body = f"""
@@ -361,7 +423,7 @@ async def update_request(
                 مستشفى النساء والأطفال بتبوك
                 </p>
             """
-            send_email(to_email=req.email, subject=requester_subject, body=requester_body)
+            background_tasks.add_task(send_email, req.email, requester_subject, requester_body)
 
     return RedirectResponse(url=f"/requests/{request_id}", status_code=302)
 
@@ -383,3 +445,9 @@ def approve_request(
     req.status = "Completed"
     db.commit()
     return {"msg": "Approved as completed"}
+
+
+from fastapi.responses import StreamingResponse
+import pandas as pd
+import io
+

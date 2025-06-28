@@ -1,20 +1,14 @@
 #app/router/auth/py
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
-from sqlalchemy.orm import Session
 from app import schemas, models, auth, crud
 from app.database import SessionLocal
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
-from app.auth import get_current_user  # يجب أن يكون لديك هذا الديبندنسي
-from fastapi.responses import HTMLResponse
-from app import crud, auth
 from app.mail import send_email
 from sqlalchemy.orm import Session
 from fastapi.templating import Jinja2Templates
 
-templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
+templates = Jinja2Templates(directory="templates")
 
 import os
 from dotenv import load_dotenv
@@ -25,8 +19,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
-templates = Jinja2Templates(directory="templates")
+
 
 def get_db():
     db = SessionLocal()
@@ -44,7 +37,6 @@ def get_token_from_cookie(request: Request):
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    # احذف Bearer إذا موجودة
     if token.startswith("Bearer "):
         token = token[len("Bearer "):]
     return token
@@ -110,9 +102,10 @@ def dashboard(request: Request, token: str = Depends(get_token_from_cookie), db:
     elif user.role == "engineer":
         user_requests = db.query(models.Request).filter(models.Request.assigned_engineer_id == user.id).all()
     else:
-        user_requests = db.query(models.Request).filter(models.Request.requester_name == user.name).all()
+        user_requests = db.query(models.Request).filter(models.Request.email == user.email).all()
 
     return templates.TemplateResponse("dashboard.html", {
+
         "request": request,
         "user": user,
         "requests": user_requests
@@ -127,6 +120,7 @@ def logout():
 
 BASE_URL = "https://maintenance.onrender.com"
 
+#BASE_URL = "http://127.0.0.1:8000"
 
 @router.get("/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request):
@@ -160,9 +154,6 @@ def send_reset_email(request: Request, email: str = Form(...), db: Session = Dep
 
 
 
-
-
-
 @router.get("/reset-password", response_class=HTMLResponse, name="reset_password_form")
 def reset_password_form(request: Request, token: str):
     email = auth.verify_reset_token(token)
@@ -187,8 +178,10 @@ def reset_password(
 
     user = crud.get_user_by_email(db, email)
     from app.auth import get_password_hash
-    user.hashed_password = get_password_hash(new_password)
+    #user.hashed_password = get_password_hash(new_password)
+    user.password = get_password_hash(new_password)
     db.commit()
+
 
     # Redirect to login with success message
 
@@ -196,3 +189,4 @@ def reset_password(
         url="/auth/login?msg=✅ تم تغيير كلمة المرور بنجاح",
         status_code=status.HTTP_303_SEE_OTHER
     )
+
